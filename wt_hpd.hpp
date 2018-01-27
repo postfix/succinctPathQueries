@@ -2,14 +2,15 @@
 #include "bp_tree.h"
 #include "path_query_processor.hpp"
 #include "rs_bitvector.hpp"
+#include "wavelet_trees.hpp"
 #include <cassert>
 
 // wt_hpd: implements the path_query_processor interface
 class wt_hpd: public path_query_processor {
 private:
 	size_type m;
-	succinct_tree original,condensed;
-	wt<> wavelet_tree;
+	succinct_tree &original, &condensed;
+	wt_int<> &wavelet_tree;
 	rs_bitvector B;
 
 	size_type ref_count( node_type x ) const {
@@ -32,7 +33,9 @@ private:
 	}
 
 	// half-open segments exclusive of "p" itself
-	void get_intervals( node_type p, node_type x, vector<pair<size_type,size_type>> res, bool inclusive = false ) const {
+	void get_intervals( node_type p, node_type x, 
+						vector<pair<size_type,size_type>> res, 
+						bool inclusive = false ) const {
 		// assert( original.is_ancestor(p,x) );
 		auto pp = ref(p);
 		for ( auto px = ref(x); px != pp; ) {
@@ -59,9 +62,7 @@ public:
 
 	size_type size() const { return m; }
 
-	//FIXME: fix the constructor
-	//how exactly to use Wavelet tree, figure out
-	wt_hpd( const stree &o, const stree &c, const wt<> &w, const bit_vector &b ) {
+	wt_hpd( const stree &o, const stree &c, const wt_int &w, const bit_vector &b ) {
 		original = o;
 		condensed = c;
 		wavelet_tree = w;
