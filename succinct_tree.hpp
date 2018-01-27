@@ -1,5 +1,6 @@
 #ifndef INCLUDED_SUCCINCT_TREE
 #define INCLUDED_SUCCINCT_TREE
+#include "pq_types.hpp"
 
 #include "int_vector.hpp"
 #include "rank_support.hpp"
@@ -19,22 +20,22 @@
 
 class succinct_tree {
 public:
-	typedef bit_vector::size_type 	    size_type;
-	typedef size_type				    node_type;
-	typedef bit_vector::difference_type difference_type;
+	typedef pq_types::size_type 	    size_type;
+	typedef pq_types::node_type			node_type;
 
 	// tree info
 	virtual size_type 		  size() const ;
 
 	// navigation
-	virtual node_type 		  parent( node_type x ) const ;
-	virtual node_type 		  ancestor( node_type x, size_type i ) const ;
-	virtual vector<node_type> children( node_type x ) const ;
-	virtual node_type 		  lca( node_type x, node_type y ) const ;
+	virtual node_type 		  parent( const node_type x ) const ;
+	virtual node_type 		  ancestor( const node_type x, const size_type i ) const ;
+	virtual vector<node_type> children( const node_type x ) const ;
+	virtual node_type 		  lca( const node_type x, const node_type y ) const ;
+	virtual size_type		  depth( const node_type x ) const ;
 
 	// predicates
-	virtual bool			  is_ancestor( node_type p, node_type x ) const ;
-	virtual bool			  is_leaf( node_type x ) const ;
+	virtual bool			  is_ancestor( const node_type p, const node_type x ) const ;
+	virtual bool			  is_leaf( const node_type x ) const ;
 };
 
 #endif

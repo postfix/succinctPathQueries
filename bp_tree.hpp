@@ -28,27 +28,22 @@ class bp_tree: public succinct_tree {
 	/*! The position of the opening parenthesis of the node $x$
 	 * \param x the pre-order number of the node
 	 */
-	size_type node2position( node_type x ) const {
+	size_type node2position( const node_type x ) const {
 		return bp_sada->select(x+1);
 	}
 	/*! The pre-order number of the node, whose opening parenthesis is at position i
 	 * \param i position of the opening parenthesis
 	 */
-	node_type position2node( size_type i ) const {
+	node_type position2node( const size_type i ) const {
 		return bp_sada->rank(i)-1;
 	}
 
-	pair<size_type,size_type> interval( node_type x ) const {
+	pair<size_type,size_type> interval( const node_type x ) const {
 		size_type i = node2position(x);
 		return {i,bp_sada->find_close(i)};
 	}
 
 public:
-	/*
-	typedef bit_vector::size_type 	    size_type;
-	typedef bit_vector::difference_type difference_type;
-	typedef uint32_t					node_type;
-	*/
 
 	bp_tree( const bit_vector *bp ) {
 		bp_sada = make_unique<bp_support_sada>(bp);
@@ -60,11 +55,11 @@ public:
 	}
 
 	// navigation
-	node_type parent( node_type x ) const {
+	node_type parent( const node_type x ) const {
 		return position2node( bp_sada->enclose( node2position(x) ) );
 	}
 
-	vector<node_type> children( node_type x ) const {
+	vector<node_type> children( const node_type x ) const {
 		auto ix = interval(x);
 		vector<node_type> res;
 		//TODO: assert res.size() == 0;
@@ -75,7 +70,7 @@ public:
 		return res;
 	}
 
-	node_type lca( node_type x, node_type y ) const {
+	node_type lca( const node_type x, const node_type y ) const {
 		if ( is_ancestor(x,y) )
 			return x;
 		if ( is_ancestor(y,x) )
@@ -94,12 +89,16 @@ public:
 		goto label01;
 	}
 
+	size_type depth( const node_type x ) const {
+		bp_sada->excess(node2position(x))-1;
+	}
+
 	// predicates
-	bool is_leaf( node_type x ) const {
+	bool is_leaf( const node_type x ) const {
 		auto i = node2position(x);
 		return bp_sada->find_close(i) == i+1;
 	}
-	bool is_ancestor( node_type p, node_type x ) const {
+	bool is_ancestor( const node_type p, const node_type x ) const {
 		auto ix = interval(x),
 			 iy = interval(y);
 		return ix.first <= iy.first && iy.second <= ix.second ||\
