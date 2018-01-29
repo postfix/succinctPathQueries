@@ -88,6 +88,8 @@ class wt_int
         select_1_type          m_tree_select1; // select support for the wavelet tree bit vector
         select_0_type          m_tree_select0;
         uint32_t               m_max_level = 0;
+        mutable int_vector<64> m_path_off;     // array keeps track of path offset in select-like methods
+        mutable int_vector<64> m_path_rank_off;// array keeps track of rank values for the offsets
 
         void copy(const wt_int& wt) {
             m_size          = wt.m_size;
@@ -100,9 +102,16 @@ class wt_int
             m_tree_select0  = wt.m_tree_select0;
             m_tree_select0.set_vector(&m_tree);
             m_max_level     = wt.m_max_level;
+            m_path_off      = wt.m_path_off;
+            m_path_rank_off = wt.m_path_rank_off;
         }
 
     private:
+
+        void init_buffers(uint32_t max_level) {
+            m_path_off = int_vector<64>(max_level+1);
+            m_path_rank_off = int_vector<64>(max_level+1);
+        }
 
         // recursive internal version of the method interval_symbols
         void _interval_symbols(size_type i, size_type j, size_type& k,
@@ -151,14 +160,14 @@ class wt_int
 		}
 
 		value_type
-		_range_quantile( std::vector<std::pair<size_type,size_type>> &r, size_type k
+		_range_quantile( std::vector<std::pair<size_type,size_type>> &r, size_type k,
 					  	 size_type level,
 					  	 std::vector<size_type> &paths,
 					  	 std::vector<size_type> &node_sizes,
 					  	 std::vector<size_type> &offsets ) const {
 			
 			if ( level >= m_max_level ) {
-				map<value_type,size_type> m_cnt;
+				std::map<value_type,size_type> m_cnt;
 				assert( m_cnt.size() == 0 );
 				for ( auto i = 0; i < r.size(); ++i ) {
 					if ( is_empty(r[i]) ) continue ;
@@ -228,6 +237,7 @@ class wt_int
 			return _range_quantile(r,k-accum_left,level+1,paths,node_sizes,offsets);
 		}
 
+
     public:
 
         const size_type&       sigma = m_sigma;         //!< Effective alphabet size of the wavelet tree.
@@ -236,6 +246,7 @@ class wt_int
 
         //! Default constructor
         wt_int() {
+            init_buffers(m_max_level);
         };
 
         //! Semi-external constructor
@@ -251,6 +262,7 @@ class wt_int
         template<uint8_t int_width>
         wt_int(int_vector_buffer<int_width>& buf, size_type size,
                uint32_t max_level=0) : m_size(size) {
+            init_buffers(m_max_level);
             if (0 == m_size)
                 return;
             size_type n = buf.size();  // set n
@@ -273,6 +285,7 @@ class wt_int
             } else {
                 m_max_level = max_level;
             }
+            init_buffers(m_max_level);
 
             // buffer for elements in the right node
             int_vector_buffer<> buf1(tmp_file(buf.filename(), "_wt_constr_buf"),
@@ -368,6 +381,8 @@ class wt_int
                 m_tree_select0  = std::move(wt.m_tree_select0);
                 m_tree_select0.set_vector(&m_tree);
                 m_max_level     = std::move(wt.m_max_level);
+                m_path_off      = std::move(wt.m_path_off);
+                m_path_rank_off = std::move(wt.m_path_rank_off);
             }
             return *this;
         }
@@ -382,6 +397,8 @@ class wt_int
                 util::swap_support(m_tree_select1, wt.m_tree_select1, &m_tree, &(wt.m_tree));
                 util::swap_support(m_tree_select0, wt.m_tree_select0, &m_tree, &(wt.m_tree));
                 std::swap(m_max_level,  wt.m_max_level);
+                m_path_off.swap(wt.m_path_off);
+                m_path_rank_off.swap(wt.m_path_rank_off);
             }
         }
 
@@ -401,7 +418,7 @@ class wt_int
          *  \par Precondition
          *       \f$ i < size() \f$
          */
-        value_type operator[] (size_type i) const {
+        value_type operator[](size_type i)const {
             assert(i < size());
             size_type offset = 0;
             value_type res = 0;
@@ -510,8 +527,6 @@ class wt_int
             size_type offset = 0;
             uint64_t mask    = (1ULL) << (m_max_level-1);
             size_type node_size = m_size;
-            int_vector<64> m_path_off(max_level+1);
-            int_vector<64> m_path_rank_off(max_level+1);
             m_path_off[0] = m_path_rank_off[0] = 0;
 
             for (uint32_t k=0; k < m_max_level and node_size; ++k) {
@@ -795,6 +810,7 @@ class wt_int
             m_tree_select1.load(in, &m_tree);
             m_tree_select0.load(in, &m_tree);
             read_member(m_max_level, in);
+            init_buffers(m_max_level);
         }
 
         //! Represents a node in the wavelet tree
@@ -996,7 +1012,6 @@ class wt_int
         std::pair<uint64_t,uint64_t> path(value_type c) const {
             return {m_max_level,c};
         }
-
 		// NOTE: modifies its argument
 		value_type 
 		range_quantile( std::vector<std::pair<size_type,size_type>> &r, size_type k ) const {
@@ -1005,6 +1020,8 @@ class wt_int
 								   offsets(r.size(),0);
 		    return _range_quantile(r,k,0,paths,node_sizes,offsets);	
 		}
+
+
 
     private:
 

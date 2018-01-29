@@ -30,7 +30,7 @@ class plain_tree {
 			assert( !seen(y) );
 			dfs(y,cur);
 		}
-		bp_seq[cur]= '0', b[cur++] = 0;
+		bp_seq[cur]= '0', b[cur++]= 0;
 	}
 
 public:
