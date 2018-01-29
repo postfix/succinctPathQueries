@@ -29,6 +29,7 @@ public:
 	typedef pq_types::size_type size_type;
 private:
 	bp_support_sada bp_sada;
+	bit_vector m_bv;
 
 	/*! The position of the opening parenthesis of the node $x$
 	 * \param x the pre-order number of the node
@@ -49,7 +50,17 @@ private:
 	}
 
 public:
-
+	
+	// constructors
+	bp_tree( const string &s ) {
+		auto k = s.size();
+		assert( !(k&1) );
+		m_bv = bit_vector(k,0);
+		for ( auto i = 0; i < k; ++i )
+			if ( s[i] == '(' )
+				bv[i] = 1;
+		bp_sada = bp_support_sada(&bv);
+	}
 	
 	bp_tree( const bit_vector *bp ) {
 		bp_sada = bp_support_sada(bp);

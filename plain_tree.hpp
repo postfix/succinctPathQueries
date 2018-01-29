@@ -1,12 +1,7 @@
 /*
  */
 #include <bits/stdc++>
-#define BIT(k) (1ULL<<(x))
-#define TST(a,x) (a[(x)>>3] & BIT((x)&7))
-#define CLR(a,x) (a[(x)>>3] &= ~BIT((x)&7))
-#define SET(a,x) (a[(x)>>3] |= BIT((x)&7))
-#define N (1<<22)
-
+#include <cassert>
 #include "sdsl/bit_vector.hpp"
 #include "sdsl/int_vector.hpp"
 #include "raw_tree.hpp"
@@ -14,6 +9,49 @@
 #include "pq_types.hpp"
 #include <vector>
 #include <unordered_map>
+#include <map>
+#include <set>
+
+class plain_tree {
+public:
+	typedef pq_types::size_type	size_type;
+	typedef pq_types::node_type	node_type;
+	typedef pq_types::value_type value_type;
+private:
+	std::map<node_type,std::set<node_type>> adj;
+	bool str_repr= false;
+	size_type num_of_edges= 0;
+	sdsl::bit_vector<> bv;
+	void dfs( node_type x, size_type &cur ) {
+		bv[cur++]= 1;
+		for ( auto y: adj[x] )
+			dfs(y,cur);
+		bv[cur++]= 0;
+	}
+public:
+	plain_tree() { adj.clear(); }
+	inline void add_arc( node_type x, node_type y ) {
+		if ( !adj.count(x) )
+			adj[x].clear();
+		adj[x].insert(y), ++num_of_edges;
+	}
+	operator sdsl::bit_vector<>() {
+		if ( !str_repr ) {
+			bv= sdsl::bit_vector<>(2*adj[x].size(),0);
+			size_type cur= 0;
+			dfs(0,cur);
+			assert( cur == 2*size() );
+			str_repr= true ;
+		}
+		return bv;
+	}
+	inline size_type size() const {
+		return adj.size();
+	}
+	inline size_type nedges() const {
+		return num_of_edges;
+	}
+};
 
 class hpd {
 public:
@@ -43,15 +81,21 @@ private:
 		}
 		return card[x];
 	}
+
 	void hld( node_type x, bool new_chain = false ) {
-		if ( new_chain ) 
-			++chain_id;
-		chain.push_back(x), which_chain[x] = chain_id;
+		//TODO: this is ugly, needs FIX
+		if ( new_chain ) {
+			if ( chain_id == n )
+				chain_id= 0;
+			else ++chain_id;
+		}
+		chain.push_back(x), which_chain[x]= chain_id;
 		if ( best_son.count(x) )
 			hld(best_son[x]);
-		for ( const_iterator<int> it = T->begin(x); it != T->end(); ++it )
-			if ( !best_son.count(x) || *it != best_son[x] )
-				hld(*it,true);
+		std::vector<node_type> children= T.children(x);
+		for ( auto y: children )
+			if ( !best_son.count(x) || y != best_son[x] )
+				hld(y,true);
 	}
 
 	node_type ref( node_type x ) const {
@@ -64,36 +108,35 @@ public:
 		n= (t= T).size();
 	};
 
-	std::tuple<bit_vector,bit_vector,bit_vector,int_vector<value_type>> 
+	std::tuple<succinct_tree&, bit_vector, bit_vector, std::vector<node_type>> 
 	operator()() {
 
-		chain_id = -1, chain.clear(), which_chain.clear(), pos_in_chain.clear(), len.reserve(n);
+		chain_id= n, chain.clear(), which_chain.clear(), pos_in_chain.clear(), len.reserve(n);
 		hld(0,true);
 
-		int ch,x,y,i,j,k,prev = -1;
-		for ( k = 0, i = 0; i < n; ++i ) {
+		size_type i,j,k,ch,prev = chain_id+1;
+		node_type x,y;
+		for ( k= 0, i= 0; i < n; ++i ) {
 			if ( prev != (ch=which_chain[x=chain[i]]) ) 
-				head[ch] = i, len[ch] = 0;
-			pos_in_chain[x] = i, ++len[ch], prev = ch;
+				head[ch]= i, len[ch]= 0;
+			pos_in_chain[x]= i, ++len[ch], prev= ch;
 		}
 
-		// we need the plain_tree to support add_arcs operation
-		plain_tree pt(n);
-		for ( x = 1; x < n; ++x ) 
+		plain_tree pt{};
+		for ( x= 1; x < n; ++x ) 
 			pt.add_arc(ref(parent[x]),x);
-		pt.normalize();
+		assert( pt.size() == n );
+		assert( pt.nedges()+1 == n );
 
-		bit_vector B = bit_vector(2*n,0);
-		for ( k = 0, x = 0; x < n; ++x ) {
+		bit_vector B= bit_vector(2*n,0);
+		for ( k= 0, x= 0; x < n; ++x ) {
 			B[k++]= 1, ch= which_chain[x];
 			if ( chain[head[ch]] == x ) 
-				k += len[ch];
+				k+= len[ch];
 		}
 		assert( k == 2*n );
-		int_vector<value_type> C(n);
-		for ( i = 0; i < n; C[i] = static_cast<value_type>(T->weight(chain[i])), ++i );
 
-		return std::make_tuple(*T,pt,B,C);
+		return std::make_tuple(T,pt,B,chain);
 
 	}
 };
