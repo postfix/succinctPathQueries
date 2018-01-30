@@ -52,14 +52,14 @@ private:
 public:
 	
 	// constructors
-	bp_tree( const string &s ) {
+	bp_tree( const std::string &s ) {
 		auto k = s.size();
 		assert( !(k&1) );
 		m_bv = bit_vector(k,0);
 		for ( auto i = 0; i < k; ++i )
 			if ( s[i] == '(' )
-				bv[i] = 1;
-		bp_sada = bp_support_sada(&bv);
+				m_bv[i] = 1;
+		bp_sada = bp_support_sada(&m_bv);
 	}
 	
 	bp_tree( const bit_vector *bp ) {

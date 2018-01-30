@@ -1,8 +1,6 @@
 /*
  */
-#include <bits/stdc++>
 #include <cassert>
-#include "sdsl/bit_vector.hpp"
 #include "sdsl/int_vector.hpp"
 #include "raw_tree.hpp"
 #include "succinct_tree.hpp"
@@ -17,11 +15,13 @@ public:
 	typedef pq_types::size_type	size_type;
 	typedef pq_types::node_type	node_type;
 	typedef pq_types::value_type value_type;
+	typedef sdsl::bit_vector bit_vector;
+	typedef sdsl::int_vector<> int_vector;
 private:
 	std::map<node_type,std::set<node_type>> adj;
 	bool str_repr= false;
 	size_type num_of_edges= 0;
-	sdsl::bit_vector<> bv;
+	sdsl::bit_vector bv;
 	void dfs( node_type x, size_type &cur ) {
 		bv[cur++]= 1;
 		for ( auto y: adj[x] )
@@ -35,9 +35,9 @@ public:
 			adj[x].clear();
 		adj[x].insert(y), ++num_of_edges;
 	}
-	operator sdsl::bit_vector<>() {
+	operator sdsl::bit_vector() {
 		if ( !str_repr ) {
-			bv= sdsl::bit_vector<>(2*adj[x].size(),0);
+			bv= sdsl::bit_vector(2*adj.size(),0);
 			size_type cur= 0;
 			dfs(0,cur);
 			assert( cur == 2*size() );
@@ -58,24 +58,26 @@ public:
 	typedef pq_types::size_type	size_type;
 	typedef pq_types::node_type	node_type;
 	typedef pq_types::value_type value_type;
+	typedef sdsl::bit_vector bit_vector;
+	typedef sdsl::int_vector<> int_vector;
 private:
-	enum { NONE = N };
-	const succinct_tree &T;
+	enum { NONE = (1<<22) };
+	const succinct_tree *T;
 	std::vector<node_type> chain;
 	std::vector<size_type> len;
-	std::unordered_map<node_type,size_type> which_chain, pos_in_chain;
+	mutable std::unordered_map<node_type,size_type> which_chain, pos_in_chain;
 	std::unordered_map<node_type,size_type> card;
 	std::unordered_map<node_type,node_type> best_son, parent;
-	std::unordered_map<size_type,size_type> head;
+	mutable std::unordered_map<size_type,size_type> head;
 	size_type n, chain_id;
 
 	size_type dfs( node_type x ) {
 		if ( card.count(x) )
 			return card[x];
 		card[x] = 1;
-		for ( const_iterator<int> it = T->begin(x); it != T->end(x); ++it ) {
-			auto y = *it;
-			parent[y] = x, card[x] += dfs(y);
+		std::vector<node_type> children= T->children(x);
+		for ( auto y: children ) {
+			parent[y]= x, card[x]+= dfs(y);
 			if ( !best_son.count(x) || card[y] > card[best_son[x]] )
 				best_son[x]= y;
 		}
@@ -92,7 +94,7 @@ private:
 		chain.push_back(x), which_chain[x]= chain_id;
 		if ( best_son.count(x) )
 			hld(best_son[x]);
-		std::vector<node_type> children= T.children(x);
+		std::vector<node_type> children= T->children(x);
 		for ( auto y: children )
 			if ( !best_son.count(x) || y != best_son[x] )
 				hld(y,true);
@@ -104,11 +106,11 @@ private:
 
 public:
 
-	hpd( const succinct_tree &t ) { 
-		n= (t= T).size();
+	hpd( const succinct_tree *t ) { 
+		n= (T= t)->size();
 	};
 
-	std::tuple<succinct_tree&, bit_vector, bit_vector, std::vector<node_type>> 
+	std::tuple<bit_vector, bit_vector, std::vector<node_type>> 
 	operator()() {
 
 		chain_id= n, chain.clear(), which_chain.clear(), pos_in_chain.clear(), len.reserve(n);
@@ -136,7 +138,7 @@ public:
 		}
 		assert( k == 2*n );
 
-		return std::make_tuple(T,pt,B,chain);
+		return std::make_tuple(bit_vector(pt),B,chain);
 
 	}
 };
