@@ -8,7 +8,7 @@
 #include <stack>
 #include <vector>
 #define M (1<<MLOG)
-#define MLOG (23)
+#define MLOG (25)
 
 class raw_tree: public succinct_tree {
 
@@ -22,6 +22,8 @@ private:
 
 	int up( int x, unsigned int u ) const {
 		int k;
+		if ( u > d[x] )
+			return ROOT;
 		for ( k = 0; u; ++k, u >>= 1 )
 			if ( u & 1 )
 				x = anc[x][k];
@@ -123,13 +125,17 @@ public:
 		return adj[x].size() == 0;
 	}
 
-	value_type query( node_type x, node_type y, const value_type *w ) {
+	value_type query( node_type x, node_type y, std::vector<value_type> &w ) {
 		std::vector<value_type> path;
 		node_type z = lca(x,y);
 		for ( auto cur = x; cur != z; path.push_back(w[cur]), cur = parent(cur) );
 		for ( auto cur = y; cur != z; path.push_back(w[cur]), cur = parent(cur) );
 		path.push_back(w[z]);
 		std::sort(path.begin(),path.end());
+		/*
+		for ( auto p: path )
+			std::cout << p << " ";
+		std::cout << std::endl;*/
 		return path[path.size()/2];
 	}
 };

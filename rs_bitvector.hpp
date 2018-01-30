@@ -7,9 +7,9 @@
 //! Wrapper class for sd-bitvector and its rank/select supports
 class rs_bitvector {
 
-	sdsl::rrr_vector<> rrr_b;
-	sdsl::rrr_vector<> :: select_1_type 	rrr_sel;
-	sdsl::rrr_vector<> :: rank_1_type		rrr_rank;
+	sdsl::rrr_vector<> rrr_b{};
+	sdsl::rrr_vector<> :: select_1_type 	rrr_sel{&rrr_b};
+	sdsl::rrr_vector<> :: rank_1_type		rrr_rank{&rrr_b};
 
 public:
 
@@ -17,7 +17,7 @@ public:
 
 	rs_bitvector() {};
 	//rs_bitvector( const sdsl::bit_vector &bv ) : sd_b(bv), sdb_sel(&sd_b), sdb_rank(&sd_b) {}
-	rs_bitvector( const sdsl::bit_vector &bv ) {
+	explicit rs_bitvector( const sdsl::bit_vector &bv ) {
 		rrr_b = sdsl::rrr_vector<>(bv); 
 		rrr_sel = sdsl::rrr_vector<>::select_1_type(&rrr_b);
 		rrr_rank = sdsl::rrr_vector<>::rank_1_type(&rrr_b);

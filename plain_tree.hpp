@@ -33,11 +33,12 @@ public:
 	inline void add_arc( node_type x, node_type y ) {
 		if ( !adj.count(x) )
 			adj[x].clear();
+		assert( !adj[x].count(y) );
 		adj[x].insert(y), ++num_of_edges;
 	}
 	operator sdsl::bit_vector() {
 		if ( !str_repr ) {
-			bv= sdsl::bit_vector(2*adj.size(),0);
+			bv= sdsl::bit_vector(2*(nedges()+1),0);
 			size_type cur= 0;
 			dfs(0,cur);
 			assert( cur == 2*size() );
@@ -74,7 +75,7 @@ private:
 	size_type dfs( node_type x ) {
 		if ( card.count(x) )
 			return card[x];
-		card[x] = 1;
+		card[x]= 1;
 		std::vector<node_type> children= T->children(x);
 		for ( auto y: children ) {
 			parent[y]= x, card[x]+= dfs(y);
@@ -84,7 +85,8 @@ private:
 		return card[x];
 	}
 
-	void hld( node_type x, bool new_chain = false ) {
+	void hld( node_type x, bool new_chain= false ) {
+		assert( card.count(x) );
 		//TODO: this is ugly, needs FIX
 		if ( new_chain ) {
 			if ( chain_id == n )
@@ -92,8 +94,10 @@ private:
 			else ++chain_id;
 		}
 		chain.push_back(x), which_chain[x]= chain_id;
-		if ( best_son.count(x) )
+		if ( best_son.count(x) ) {
+			assert( best_son[x] == x+1 );
 			hld(best_son[x]);
+		}
 		std::vector<node_type> children= T->children(x);
 		for ( auto y: children )
 			if ( !best_son.count(x) || y != best_son[x] )
@@ -114,11 +118,14 @@ public:
 	operator()() {
 
 		chain_id= n, chain.clear(), which_chain.clear(), pos_in_chain.clear(), len.reserve(n);
-		hld(0,true);
+		best_son.clear(), dfs(0), hld(0,true);
 
-		size_type i,j,k,ch,prev = chain_id+1;
+		assert( chain.size() == n );
+		assert( which_chain.size() == n );
+
+		size_type i,j,k,ch,prev= chain_id+1;
 		node_type x,y;
-		for ( k= 0, i= 0; i < n; ++i ) {
+		for ( i= 0; i < n; ++i ) {
 			if ( prev != (ch=which_chain[x=chain[i]]) ) 
 				head[ch]= i, len[ch]= 0;
 			pos_in_chain[x]= i, ++len[ch], prev= ch;
@@ -127,7 +134,6 @@ public:
 		plain_tree pt{};
 		for ( x= 1; x < n; ++x ) 
 			pt.add_arc(ref(parent[x]),x);
-		assert( pt.size() == n );
 		assert( pt.nedges()+1 == n );
 
 		bit_vector B= bit_vector(2*n,0);
@@ -136,6 +142,7 @@ public:
 			if ( chain[head[ch]] == x ) 
 				k+= len[ch];
 		}
+
 		assert( k == 2*n );
 
 		return std::make_tuple(bit_vector(pt),B,chain);

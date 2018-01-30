@@ -12,6 +12,7 @@ public:
 
 	// median query: returns the median weight on the x-to-y path
 	virtual value_type query( const node_type x, const node_type y ) const = 0;
+	virtual value_type weight_of( const node_type x ) const = 0;
 };
 
 #endif
