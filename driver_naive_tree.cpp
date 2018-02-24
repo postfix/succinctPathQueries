@@ -5,19 +5,17 @@
  * 	-- weights of the nodes in pre-order
  * 	The size of the tree is inferred from the bp sequence
  */
-#include <sys/resource.h>
 #include "sdsl/int_vector.hpp"
 #include "sdsl/bits.hpp"
 #include "sdsl/util.hpp"
 #include "rs_bitvector.hpp"
-#include "raw_tree.hpp"
+#include "naive_tree.hpp"
 #include "bp_tree.hpp"
 #include "wt_hpd.hpp"
 #include "plain_tree.hpp"
 #include "succinct_tree.hpp"
 #include "path_query_processor.hpp"
 #include "gtest/gtest.h"
-#include <cassert>
 #include <vector>
 #include <random>
 #include <cstring>
@@ -38,48 +36,28 @@ int main( int argc, char **argv ) {
 	FILE *fp = fopen(argv[1],"w");
 	for ( std::string s; std::cin >> s; ++cs ) {
 		auto n = s.size()/2;
-
-		const rlim_t kStackSize= n*4*5;
-		struct rlimit r1;
-		int result;
-
-		result= getrlimit(RLIMIT_STACK,&r1);
-		if ( result == 0 ) {
-			if ( r1.rlim_cur < kStackSize ) {
-				r1.rlim_cur= kStackSize;
-				result= setrlimit(RLIMIT_STACK,&r1);
-				if ( result != 0 ) {
-					fprintf(stderr,"setrlimit returned result = %d\n",result);
-					assert( false );
-				}
-			}
-		}
-		puts("Stack size successfully set");
-
 		std::vector<pq_types::value_type> w(n);
 
 		for ( auto l = 0; l < n; std::cin >> w[l++] ) ;
 
-		hpd_remapper *remapper= new hpd_remapper();
-		auto ret = remapper->convert(s,w);
-		delete remapper;
+		/*
+		hpd_remapper remapper;
+		auto ret = remapper.convert(s,w);
 		s= std::get<0>(ret);
 		w= std::get<1>(ret);
+		*/
 		// std::cout << s << std::endl;
-
-		puts("Remapping successful");
 
 		std::default_random_engine generator;
 		std::uniform_int_distribution<int> distribution(0,n-1);
 		auto dice= std::bind(distribution,generator);
 
-		//succinct_tree *raw = new raw_tree(s);	
-		succinct_tree *T   = new bp_tree(s);
-		puts("Constructed the original tree");
+		naive_tree *T = new naive_tree(s);	
+		//succinct_tree *T   = new bp_tree(s);
 
-		hpd *H= new hpd(T);
-		auto bundle= (*H)();
-		delete H;
+		/*
+		hpd H= hpd(T);
+		auto bundle= H();
 		auto bv= std::get<0>(bundle);
 		succinct_tree *original= T,
 					  *condensed= new bp_tree(&bv);
@@ -90,24 +68,24 @@ int main( int argc, char **argv ) {
 		int_vector weights= int_vector(T->size());
 		for ( auto l = 0; l < T->size(); ++l ) weights[l]= w[chain[l]];
 		construct_im(wt,weights);
-		puts("Constructed the Wavelet tree");
-		path_query_processor *processor= new wt_hpd(original,condensed,&wt,B);
-		puts("Constructed the Processor");
-		puts("Support structures built, now starting the queries");
+		*/
+		//puts("Constructed the Wavelet tree");
+		//path_query_processor *processor= new wt_hpd(original,condensed,&wt,B);
+		//puts("Constructed the Processor");
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for ( qr= (1<<9), oqr= qr; qr--; ) {
 			i= dice(), j= dice();
 			//printf("[%d] %d %d\n",qr,i,j);
-			value_type res= processor->query(static_cast<node_type>(i),static_cast<node_type>(j));
+			value_type res= T->query(static_cast<node_type>(i),static_cast<node_type>(j),w);
 			//printf("%d\n",(int)res);
 		}
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = finish - start;
-		fprintf(fp,"%.6lf %.6lf\n",tmp=(dynamic_cast<wt_hpd*>(processor))->bits_per_node(),elapsed.count()/oqr);
-		ax+= elapsed.count()/oqr, bx+= tmp;
+		fprintf(fp,"%.6lf\n",elapsed.count()/oqr);
+		ax+= elapsed.count()/oqr;
 	}
-	fprintf(fp,"%.6lf %.6lf\n",bx/cs,ax/cs);
+	fprintf(fp,"%.6lf\n",ax/cs);
 	fclose(fp);
 	return 0;
 }

@@ -25,6 +25,7 @@ public:
 
 	// tree info
 	virtual size_type 		  size() const = 0;
+	virtual double			  size_in_bytes() const = 0;
 
 	// navigation
 	virtual node_type 		  parent( const node_type x ) const = 0;

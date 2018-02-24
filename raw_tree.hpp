@@ -7,8 +7,9 @@
 #include <cassert>
 #include <stack>
 #include <vector>
+#include <cstdio>
 #define M (1<<MLOG)
-#define MLOG (25)
+#define MLOG (23)
 
 class raw_tree: public succinct_tree {
 
@@ -66,18 +67,18 @@ public:
 	typedef pq_types::node_type node_type;
 	typedef pq_types::value_type value_type;
 
-	raw_tree( const std::string &s) {
+	raw_tree( const std::string &s ) {
 		//is >> n;
-		int i,j,k,x,y,V = 0;
+		int i,j,k,x,y,V= 0;
 		//for ( i = 0; i < n; ++i ) is >> k; //read weights, no need to store them
 		assert( !(s.size() & 1) );
-		n = s.size()/2;
-		for ( K = 0; (1<<K) <= n; ++K ) ;
-		for ( tick = -1, i = 0; i < n; ++i ) 
-			for ( adj[i].clear(), seen[i] = false, k = 0; k < K; anc[i][k++]= NONE) ;
+		n= s.size()/2;
+		for ( K= 0; (1<<K) <= n; ++K ) ;
+		for ( tick= -1, i = 0; i < n; ++i ) 
+			for ( adj[i].clear(), seen[i]= false, k = 0; k < K; anc[i][k++]= NONE) ;
 		std::stack<int> st;
 		assert( st.empty() );
-		for ( i = 0; i < s.size(); ++i ) {
+		for ( i= 0; i < s.size(); ++i ) {
 			if ( s[i] == '(' ) {
 				if ( !st.empty() ) 
 					adj[st.top()].push_back(V);
@@ -131,12 +132,35 @@ public:
 		for ( auto cur = x; cur != z; path.push_back(w[cur]), cur = parent(cur) );
 		for ( auto cur = y; cur != z; path.push_back(w[cur]), cur = parent(cur) );
 		path.push_back(w[z]);
+		assert( path.size() == depth(x)+depth(y)+1-2*depth(z) );
+		//printf("x= %d, y= %d, z= %d, size= %d\n",(int)x,(int)y,(int)z,(int)path.size());
 		std::sort(path.begin(),path.end());
 		/*
 		for ( auto p: path )
 			std::cout << p << " ";
 		std::cout << std::endl;*/
 		return path[path.size()/2];
+	}
+
+	value_type query( node_type x, node_type y, sdsl::int_vector<> &w ) {
+		std::vector<value_type> path;
+		node_type z = lca(x,y);
+		for ( auto cur = x; cur != z; path.push_back(w[cur]), cur = parent(cur) );
+		for ( auto cur = y; cur != z; path.push_back(w[cur]), cur = parent(cur) );
+		path.push_back(w[z]);
+		assert( path.size() == depth(x)+depth(y)+1-2*depth(z) );
+		std::sort(path.begin(),path.end());
+		/*
+		for ( auto p: path )
+			std::cout << p << " ";
+		std::cout << std::endl;*/
+		return path[path.size()/2];
+	}
+
+
+	//FIXME
+	double size_in_bytes() const {
+		return 0;
 	}
 };
 

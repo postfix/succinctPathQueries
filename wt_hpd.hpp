@@ -15,7 +15,7 @@ typedef sdsl::bit_vector bit_vector;
 // wt_hpd: implements the path_query_processor interface
 class wt_hpd: public path_query_processor {
 private:
-	size_type m;
+	size_type m= 0;
 	const succinct_tree *original= nullptr, 
 				  		*condensed= nullptr;
 	const wt_int *wavelet_tree;
@@ -107,6 +107,7 @@ public:
 		condensed= c;
 		wavelet_tree= w;
 		B= new rs_bitvector(b);
+		m= original->size();
 	}
 
 	value_type
@@ -118,13 +119,13 @@ public:
 	query( const node_type x, const node_type y ) const {
 		auto z = original->lca(x,y);
 		//printf("lca(%lu,%lu) = %lu\n",x,y,z);
+		size_type k = original->depth(x)+original->depth(y)+1-2*original->depth(z);
 		std::vector<std::pair<size_type,size_type>> segments;
 		assert( segments.size() == 0 );
 		get_intervals(z,x,segments);
 		get_intervals(z,z,segments,true);
 		get_intervals(z,y,segments);
-		size_type k = original->depth(x)+original->depth(y)+1-2*original->depth(z);
-		assert( total_length(segments) == k );
+		//assert( total_length(segments) == k );
 		/*
 		std::vector<value_type> ss;
 		for ( auto p: segments ) {
@@ -140,5 +141,9 @@ public:
 		return query(segments,k>>1);
 		//return query_naive(x,y);
 	}
+
+	double bits_per_node() const {
+		return 8*(original->size_in_bytes()+condensed->size_in_bytes()+B->size_in_bytes()+sdsl::size_in_bytes(*wavelet_tree))/(size()+0.00);
+	}	
 };
 

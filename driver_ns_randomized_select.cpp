@@ -23,6 +23,7 @@
 #include <cstring>
 #include <chrono>
 #include "hpd_remapper.hpp"
+#include "path_query_processor_impl.hpp"
 
 typedef sdsl::bit_vector bit_vector;
 typedef sdsl::int_vector<> int_vector;
@@ -54,20 +55,11 @@ int main( int argc, char **argv ) {
 				}
 			}
 		}
-		puts("Stack size successfully set");
+		//puts("Stack size successfully set");
 
 		std::vector<pq_types::value_type> w(n);
 
-		for ( auto l = 0; l < n; std::cin >> w[l++] ) ;
-
-		hpd_remapper *remapper= new hpd_remapper();
-		auto ret = remapper->convert(s,w);
-		delete remapper;
-		s= std::get<0>(ret);
-		w= std::get<1>(ret);
-		// std::cout << s << std::endl;
-
-		puts("Remapping successful");
+		for ( auto l= 0; l < n; std::cin >> w[l++] ) ;
 
 		std::default_random_engine generator;
 		std::uniform_int_distribution<int> distribution(0,n-1);
@@ -75,25 +67,10 @@ int main( int argc, char **argv ) {
 
 		//succinct_tree *raw = new raw_tree(s);	
 		succinct_tree *T   = new bp_tree(s);
-		puts("Constructed the original tree");
+		//puts("Succinct tree constructed");
 
-		hpd *H= new hpd(T);
-		auto bundle= (*H)();
-		delete H;
-		auto bv= std::get<0>(bundle);
-		succinct_tree *original= T,
-					  *condensed= new bp_tree(&bv);
-		bit_vector B= std::get<1>(bundle);
-		std::vector<node_type> chain= std::get<2>(bundle);
-		wt_int wt;
-			
-		int_vector weights= int_vector(T->size());
-		for ( auto l = 0; l < T->size(); ++l ) weights[l]= w[chain[l]];
-		construct_im(wt,weights);
-		puts("Constructed the Wavelet tree");
-		path_query_processor *processor= new wt_hpd(original,condensed,&wt,B);
-		puts("Constructed the Processor");
-		puts("Support structures built, now starting the queries");
+		path_query_processor *processor= new path_query_processor_impl(T,w);
+		//puts("Processor constructed");
 
 		auto start = std::chrono::high_resolution_clock::now();
 		for ( qr= (1<<9), oqr= qr; qr--; ) {
@@ -104,10 +81,11 @@ int main( int argc, char **argv ) {
 		}
 		auto finish = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = finish - start;
-		fprintf(fp,"%.6lf %.6lf\n",tmp=(dynamic_cast<wt_hpd*>(processor))->bits_per_node(),elapsed.count()/oqr);
+		fprintf(fp,"%.6lf %.6lf\n",tmp=(dynamic_cast<path_query_processor_impl*>(processor))->bits_per_node(),elapsed.count()/oqr);
 		ax+= elapsed.count()/oqr, bx+= tmp;
 	}
 	fprintf(fp,"%.6lf %.6lf\n",bx/cs,ax/cs);
 	fclose(fp);
 	return 0;
 }
+

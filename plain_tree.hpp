@@ -9,6 +9,9 @@
 #include <unordered_map>
 #include <map>
 #include <set>
+#define  MAXLOG (30)
+#define  MAXN   (1<<MAXLOG)
+#define  infty  (MAXN)
 
 class plain_tree {
 public:
@@ -62,46 +65,44 @@ public:
 	typedef sdsl::bit_vector bit_vector;
 	typedef sdsl::int_vector<> int_vector;
 private:
-	enum { NONE = (1<<22) };
 	const succinct_tree *T;
-	std::vector<node_type> chain;
-	std::vector<size_type> len;
-	mutable std::unordered_map<node_type,size_type> which_chain, pos_in_chain;
-	std::unordered_map<node_type,size_type> card;
-	std::unordered_map<node_type,node_type> best_son, parent;
-	mutable std::unordered_map<size_type,size_type> head;
+	mutable size_type which_chain[MAXN],pos_in_chain[MAXN];
+	size_type card[MAXN],len[MAXN];
+	node_type best_son[MAXN],parent[MAXN],chain[MAXN];
+	mutable size_type head[MAXN];
 	size_type n, chain_id;
 
 	size_type dfs( node_type x ) {
-		if ( card.count(x) )
+		if ( card[x] )
 			return card[x];
 		card[x]= 1;
+		auto &c= card[x];
 		std::vector<node_type> children= T->children(x);
 		for ( auto y: children ) {
-			parent[y]= x, card[x]+= dfs(y);
-			if ( !best_son.count(x) || card[y] > card[best_son[x]] )
+			parent[y]= x, c+= dfs(y);
+			if ( best_son[x] == infty || card[y] > card[best_son[x]] )
 				best_son[x]= y;
 		}
 		return card[x];
 	}
 
-	void hld( node_type x, bool new_chain= false ) {
-		assert( card.count(x) );
+	void hld( node_type x, size_type &cur, bool new_chain= false ) {
+		assert( card[x] );
 		//TODO: this is ugly, needs FIX
 		if ( new_chain ) {
 			if ( chain_id == n )
 				chain_id= 0;
 			else ++chain_id;
 		}
-		chain.push_back(x), which_chain[x]= chain_id;
-		if ( best_son.count(x) ) {
+		chain[cur++]= x, which_chain[x]= chain_id;
+		if ( best_son[x] < infty ) {
 			assert( best_son[x] == x+1 );
-			hld(best_son[x]);
+			hld(best_son[x],cur);
 		}
 		std::vector<node_type> children= T->children(x);
 		for ( auto y: children )
-			if ( !best_son.count(x) || y != best_son[x] )
-				hld(y,true);
+			if ( best_son[x] == infty || y != best_son[x] )
+				hld(y,cur,true);
 	}
 
 	node_type ref( node_type x ) const {
@@ -117,11 +118,10 @@ public:
 	std::tuple<bit_vector, bit_vector, std::vector<node_type>> 
 	operator()() {
 
-		chain_id= n, chain.clear(), which_chain.clear(), pos_in_chain.clear(), len.reserve(n);
-		best_son.clear(), dfs(0), hld(0,true);
-
-		assert( chain.size() == n );
-		assert( which_chain.size() == n );
+		chain_id= n;
+		size_type cur= 0;
+		for ( auto x= 0; x < n; best_son[x]= infty, card[x++]= 0 ) ;
+		dfs(0), hld(0,cur,true);
 
 		size_type i,j,k,ch,prev= chain_id+1;
 		node_type x,y;
@@ -144,8 +144,10 @@ public:
 		}
 
 		assert( k == 2*n );
+		std::vector<node_type> rchain(n);
+		for ( auto i= 0; i < n; rchain[i] = chain[i], ++i ) ;
 
-		return std::make_tuple(bit_vector(pt),B,chain);
+		return std::make_tuple(bit_vector(pt),B,rchain);
 
 	}
 };

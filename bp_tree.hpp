@@ -30,6 +30,7 @@ public:
 private:
 	bp_support_sada bp_sada;
 	bit_vector m_bv;
+	size_type _sz= 0;
 
 	/*! The position of the opening parenthesis of the node $x$
 	 * \param x the pre-order number of the node
@@ -54,22 +55,30 @@ public:
 	// constructors
 	bp_tree( const std::string &s ) {
 		auto k = s.size();
+		_sz= 0;
 		assert( !(k&1) );
 		m_bv = bit_vector(k,0);
 		for ( auto i = 0; i < k; ++i )
 			if ( s[i] == '(' )
 				m_bv[i] = 1;
 		bp_sada = bp_support_sada(&m_bv);
+		_sz+= sdsl::size_in_bytes(m_bv);
 	}
 	
 	bp_tree( const bit_vector *bp ) {
+		_sz= 0;
 		bp_sada = bp_support_sada(bp);
+		//_sz+= sdsl::size_in_bytes(*bp);
 		//bp_sada.set_vector(bp);
 	}
 
 	// tree info
 	size_type size() const {
 		return bp_sada.size()>>1;
+	}
+
+	double size_in_bytes() const {
+		return sdsl::size_in_bytes(bp_sada)+_sz;
 	}
 
 	// navigation
