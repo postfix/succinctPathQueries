@@ -74,10 +74,11 @@ private:
 	value_type query_naive( node_type x, node_type y ) const {
 		node_type z = original->lca(x,y);
 		std::vector<value_type> vec;
-		for ( ;x != z; vec.push_back((*wavelet_tree)[position_in_chain(x)]), x = original->parent(x) );
-		for ( ;y != z; vec.push_back((*wavelet_tree)[position_in_chain(y)]), y = original->parent(y) );
+		for ( ;x != z; vec.push_back((*wavelet_tree)[position_in_chain(x)]), x= original->parent(x) );
+		for ( ;y != z; vec.push_back((*wavelet_tree)[position_in_chain(y)]), y= original->parent(y) );
 		vec.push_back((*wavelet_tree)[position_in_chain(z)]);
 		std::sort(vec.begin(),vec.end());
+		puts("Inside query_naive");
 		for ( auto r: vec )
 			std::cout << r << " ";
 		std::cout << "\n";
@@ -117,6 +118,7 @@ public:
 
 	value_type 
 	query( const node_type x, const node_type y ) const {
+		//return query_naive(x,y);
 		auto z = original->lca(x,y);
 		//printf("lca(%lu,%lu) = %lu\n",x,y,z);
 		size_type k = original->depth(x)+original->depth(y)+1-2*original->depth(z);

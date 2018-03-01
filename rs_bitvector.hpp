@@ -15,6 +15,7 @@ class rs_bitvector {
 public:
 
 	typedef pq_types::size_type		size_type;
+	typedef pq_types::value_type    value_type;
 
 	//rs_bitvector() {};
 	//rs_bitvector( const sdsl::bit_vector &bv ) : sd_b(bv), sdb_sel(&sd_b), sdb_rank(&sd_b) {}
@@ -42,6 +43,10 @@ public:
 	 */
 	const size_type select( size_type i ) const {
 		return rrr_sel(i);
+	}
+
+	value_type operator[] ( size_type i ) const {
+		return rrr_b[i];
 	}
 
 };

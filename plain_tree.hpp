@@ -9,8 +9,8 @@
 #include <unordered_map>
 #include <map>
 #include <set>
-#define  MAXLOG (30)
-#define  MAXN   (1<<MAXLOG)
+#define  MAXLG (22)
+#define  MAXN   (1<<MAXLG)
 #define  infty  (MAXN)
 
 class plain_tree {
@@ -77,6 +77,8 @@ private:
 			return card[x];
 		card[x]= 1;
 		auto &c= card[x];
+		assert( T );
+		assert( T->size() > x );
 		std::vector<node_type> children= T->children(x);
 		for ( auto y: children ) {
 			parent[y]= x, c+= dfs(y);
@@ -112,6 +114,7 @@ private:
 public:
 
 	hpd( const succinct_tree *t ) { 
+		assert( t );
 		n= (T= t)->size();
 	};
 
@@ -122,6 +125,7 @@ public:
 		size_type cur= 0;
 		for ( auto x= 0; x < n; best_son[x]= infty, card[x++]= 0 ) ;
 		dfs(0), hld(0,cur,true);
+		assert( cur == n );
 
 		size_type i,j,k,ch,prev= chain_id+1;
 		node_type x,y;
@@ -145,10 +149,9 @@ public:
 
 		assert( k == 2*n );
 		std::vector<node_type> rchain(n);
-		for ( auto i= 0; i < n; rchain[i] = chain[i], ++i ) ;
+		for ( auto i= 0; i < n; rchain[i]= chain[i], ++i ) ;
 
 		return std::make_tuple(bit_vector(pt),B,rchain);
-
 	}
 };
 

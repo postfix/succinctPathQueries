@@ -8,27 +8,32 @@
 #include <unordered_map>
 #include <sstream>
 #include "pq_types.hpp"
-#define MAXLOG (30)
-#define MAXN (1<<MAXLOG)
+#define MAXLOG (22)
+#define MAXV (1<<MAXLOG)
 using value_type = pq_types::value_type;
 using size_type = pq_types::size_type;
 using node_type = pq_types::node_type;
 
+static int cnt= 0;
+
 class hpd_remapper {
 private:
-	enum { ROOT = 0, oo = MAXN+1 };
-	std::vector<node_type> adj[MAXN];
+	enum { ROOT = 0, oo = MAXV+1 };
+	std::vector<node_type> adj[MAXV];
 	size_type n,chain_id;
-	node_type p[MAXN], best_son[MAXN];
-	size_type card[MAXN], which_chain[MAXN];
-	size_type head[MAXN],len[MAXN];
-	node_type chain[MAXN];
+	node_type p[MAXV], best_son[MAXV];
+	size_type card[MAXV], which_chain[MAXV];
+	size_type head[MAXV],len[MAXV];
+	node_type chain[MAXV];
 	int cur;
 	size_type dfs( node_type x ) {
+		assert( 0 <= x && x < n );
 		assert( card[x] == +oo );
 		card[x]= 1;
+		++cnt;
 		auto &c= card[x];
-		for ( auto y: adj[x] ) {
+		for ( size_type l= 0; l < adj[x].size(); ++l ) {
+			node_type y= adj[x][l];
 			c+= dfs(y);
 			if ( best_son[x] == +oo || card[y] > card[best_son[x]] )
 				best_son[x]= y;
@@ -82,8 +87,10 @@ public:
 				st.push(V++);
 				continue ;
 			}
+			assert( !st.empty() );
 			st.pop();
 		}
+		assert( st.empty() );
 		assert( V == n );
 		dfs(ROOT);
 		chain_id= n, hld(ROOT,true);
@@ -95,7 +102,6 @@ public:
 		size_type cur= 0;
 		dfs(ROOT,str,cur);
 		assert( cur == 2*n );
-		//std::cout << std::string(str) << " "<< cur << "\n";
 		auto res = std::make_tuple<>(std::string(str),weights);
 		delete str;
 		return res;

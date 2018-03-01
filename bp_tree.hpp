@@ -36,7 +36,7 @@ private:
 #else
 	bp_support_gg bp_sada;
 #endif
-	bit_vector m_bv;
+	bit_vector *m_bv= NULL;
 	size_type _sz= 0;
 
 	/*! The position of the opening parenthesis of the node $x$
@@ -61,19 +61,20 @@ public:
 	
 	// constructors
 	bp_tree( const std::string &s ) {
-		auto k = s.size();
+		auto k= s.size();
 		_sz= 0;
 		assert( !(k&1) );
-		m_bv = bit_vector(k,0);
+		m_bv= new bit_vector(k,0);
+		assert( m_bv );
 		for ( auto i = 0; i < k; ++i )
 			if ( s[i] == '(' )
-				m_bv[i] = 1;
+				(*m_bv)[i] = 1;
 #if SADA
-		bp_sada = bp_support_sada(&m_bv);
+		bp_sada = bp_support_sada(m_bv);
 #else
-		bp_sada = bp_support_gg(&m_bv);
+		bp_sada = bp_support_gg(m_bv);
 #endif
-		_sz+= sdsl::size_in_bytes(m_bv);
+		_sz+= sdsl::size_in_bytes(*m_bv);
 	}
 	
 	bp_tree( const bit_vector *bp ) {
@@ -115,15 +116,12 @@ public:
 	}
 
 	std::vector<node_type> children( const node_type x ) const {
-		auto ix = interval(x);
 		std::vector<node_type> res;
-		//TODO: assert res.size() == 0;
-#if SADA
-		for ( auto i = ix.first; i+1 < bp_sada.size() && bp_sada.is_opening(i+1); i = bp_sada.find_close(i+1) ) {
-			//TODO: assert( is_opening(i+1) );
+		auto ix= interval(x);
+		assert (res.size() == 0);
+		for ( auto i= ix.first; i+1 < bp_sada.size() && bp_sada.is_opening(i+1); i= bp_sada.find_close(i+1) ) 
 			res.push_back(position2node(i+1));
-		}
-#endif
+		assert( is_leaf(x) || res.size() > 0 );
 		return res;
 	}
 
@@ -181,6 +179,10 @@ public:
 		auto ix = interval(x),
 			 iy = interval(y);
 		return ix.first <= iy.first && iy.second <= ix.second;
+	}
+	~bp_tree() {
+		if ( m_bv )
+			delete m_bv;
 	}
 };
 
