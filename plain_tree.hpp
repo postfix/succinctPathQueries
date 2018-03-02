@@ -9,10 +9,13 @@
 #include <unordered_map>
 #include <map>
 #include <set>
-#define  MAXLG (22)
+#define  MAXLG (30)
 #define  MAXN   (1<<MAXLG)
 #define  infty  (MAXN)
 
+/*
+ * this class is useless, and is here only for historic reasons
+ */
 class plain_tree {
 public:
 	typedef pq_types::size_type	size_type;
@@ -57,6 +60,7 @@ public:
 	}
 };
 
+/* now, this class is the real thing */
 class hpd {
 public:
 	typedef pq_types::size_type	size_type;
@@ -66,48 +70,38 @@ public:
 	typedef sdsl::int_vector<> int_vector;
 private:
 	const succinct_tree *T;
-	mutable size_type which_chain[MAXN],pos_in_chain[MAXN];
-	size_type card[MAXN],len[MAXN];
-	node_type best_son[MAXN],parent[MAXN],chain[MAXN];
-	mutable size_type head[MAXN];
-	size_type n, chain_id;
+	mutable size_type *which_chain;
+	node_type *best_son,*chain,*len,*head_of_chain;
+	size_type n,num_chains;
 
 	size_type dfs( node_type x ) {
-		if ( card[x] )
-			return card[x];
-		card[x]= 1;
-		auto &c= card[x];
+		size_type c= 1, cc, bc= 0;
 		assert( T );
 		assert( T->size() > x );
 		std::vector<node_type> children= T->children(x);
+		best_son[x]= n;
 		for ( auto y: children ) {
-			parent[y]= x, c+= dfs(y);
-			if ( best_son[x] == infty || card[y] > card[best_son[x]] )
-				best_son[x]= y;
+			c+= (cc= dfs(y));
+			if ( cc > bc )
+				bc= cc, best_son[x]= y;
 		}
-		return card[x];
+		return c;
 	}
 
-	void hld( node_type x, size_type &cur, bool new_chain= false ) {
-		assert( card[x] );
-		//TODO: this is ugly, needs FIX
-		if ( new_chain ) {
-			if ( chain_id == n )
-				chain_id= 0;
-			else ++chain_id;
-		}
-		chain[cur++]= x, which_chain[x]= chain_id;
-		if ( best_son[x] < infty ) {
-			hld(best_son[x],cur);
-		}
+	void hld( node_type x, bool is_start= false ) {
+		which_chain[x]= num_chains-1;
+		if ( is_start )
+			head_of_chain[num_chains-1]= x;
+		if ( best_son[x] < n ) 
+			hld(best_son[x]);
 		std::vector<node_type> children= T->children(x);
 		for ( auto y: children )
-			if ( best_son[x] == infty || y != best_son[x] )
-				hld(y,cur,true);
+			if ( y != best_son[x] )
+				++num_chains, hld(y,true);
 	}
 
 	node_type ref( node_type x ) const {
-		return chain[head[which_chain[x]]];
+		return head_of_chain[which_chain[x]];
 	}
 
 public:
@@ -115,49 +109,51 @@ public:
 	hpd( const succinct_tree *t ) { 
 		assert( t );
 		n= (T= t)->size();
+		best_son= new node_type[n];
+		head_of_chain= new node_type[n];
+		which_chain= new size_type[n];
 	};
 
 	std::tuple<bit_vector, bit_vector, std::vector<node_type>> 
 	operator()() {
 
-		chain_id= n;
-		size_type cur= 0;
-		for ( auto x= 0; x < n; best_son[x]= infty, card[x++]= 0 ) ;
-		dfs(0), hld(0,cur,true);
-		assert( cur == n );
+		dfs(0), num_chains= 1, hld(0,true);
 
-		size_type i,j,k,ch,prev= chain_id+1;
+		size_type i,j,k,ch;
 		node_type x,y;
-		for ( i= 0; i < n; ++i ) {
-			if ( prev != (ch=which_chain[x=chain[i]]) ) 
-				head[ch]= i, len[ch]= 0;
-			pos_in_chain[x]= i, ++len[ch], prev= ch;
-		}
+
+		for ( len= best_son, ch= 0; ch < num_chains; len[ch++]= 0 ) ;
+		for ( x= 0; x < n; ++len[which_chain[x++]] ) ;
 
 		plain_tree pt{};
 		for ( x= 1; x < n; ++x ) 
-			pt.add_arc(ref(parent[x]),x);
+			pt.add_arc(ref(T->parent(x)),x);
 		assert( pt.nedges()+1 == n );
 
 		bit_vector B= bit_vector(2*n,0);
 		for ( k= 0, x= 0; x < n; ++x ) {
 			B[k++]= 1, ch= which_chain[x];
-			if ( chain[head[ch]] == x ) 
+			if ( head_of_chain[ch] == x ) 
 				k+= len[ch];
 		}
 
 		assert( k == 2*n );
 		std::vector<node_type> rchain(n);
-		size_type *counts= new size_type[n];
-		memset(counts,0,sizeof counts);
+		node_type *counts= best_son;
+		for ( x= 0; x < n; counts[x++]= 0 ) ;
 		for ( x= 0; x < n; ++counts[ref(x++)] ) ;
 		for ( x= 1; x < n; counts[x]+= counts[x-1], ++x ) ;
 		for ( long long z= n-1; z >= 0; --z ) {
 			assert( counts[ref((node_type)z)] );
 			rchain[--counts[ref((node_type)z)]]= (node_type)z;
 		}
-		delete counts;
 		return std::make_tuple(bit_vector(pt),B,rchain);
+	}
+
+	~hpd() {
+		delete best_son;
+		delete head_of_chain;
+		delete which_chain;
 	}
 };
 
