@@ -98,7 +98,6 @@ private:
 		}
 		chain[cur++]= x, which_chain[x]= chain_id;
 		if ( best_son[x] < infty ) {
-			assert( best_son[x] == x+1 );
 			hld(best_son[x],cur);
 		}
 		std::vector<node_type> children= T->children(x);
@@ -149,8 +148,15 @@ public:
 
 		assert( k == 2*n );
 		std::vector<node_type> rchain(n);
-		for ( auto i= 0; i < n; rchain[i]= chain[i], ++i ) ;
-
+		size_type *counts= new size_type[n];
+		memset(counts,0,sizeof counts);
+		for ( x= 0; x < n; ++counts[ref(x++)] ) ;
+		for ( x= 1; x < n; counts[x]+= counts[x-1], ++x ) ;
+		for ( long long z= n-1; z >= 0; --z ) {
+			assert( counts[ref((node_type)z)] );
+			rchain[--counts[ref((node_type)z)]]= (node_type)z;
+		}
+		delete counts;
 		return std::make_tuple(bit_vector(pt),B,rchain);
 	}
 };

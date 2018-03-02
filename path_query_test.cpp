@@ -14,8 +14,6 @@
 #include <vector>
 #include <random>
 #include <cstring>
-#include "hpd_remapper.hpp"
-
 
 typedef sdsl::bit_vector bit_vector;
 typedef sdsl::int_vector<> int_vector;
@@ -50,12 +48,6 @@ namespace {
 			std::vector<pq_types::value_type> w(n);
 
 			for ( auto l = 0; l < n; std::cin >> w[l++] ) ;
-
-			hpd_remapper *remapper = new hpd_remapper();
-			assert( remapper );
-			auto ret = remapper->convert(s,w);
-			s= std::get<0>(ret);
-			w= std::get<1>(ret);
 
 			std::default_random_engine generator;
 			std::uniform_int_distribution<int> distribution(0,n-1);
@@ -120,12 +112,6 @@ namespace {
 
 			for ( auto l = 0; l < n; std::cin >> w[l++] ) ;
 
-			hpd_remapper *remapper = new hpd_remapper();
-			assert( remapper );
-			auto ret = remapper->convert(s,w);
-			s= std::get<0>(ret);
-			w= std::get<1>(ret);
-
 			std::default_random_engine generator;
 			std::uniform_int_distribution<int> distribution(0,n-1);
 			auto dice= std::bind(distribution,generator);
@@ -189,12 +175,6 @@ namespace {
 
 			for ( auto l = 0; l < n; std::cin >> w[l++] ) ;
 
-			hpd_remapper *remapper = new hpd_remapper();
-			assert( remapper );
-			auto ret = remapper->convert(s,w);
-			s= std::get<0>(ret);
-			w= std::get<1>(ret);
-
 			std::default_random_engine generator;
 			std::uniform_int_distribution<int> distribution(0,n-1);
 			auto dice= std::bind(distribution,generator);
@@ -257,12 +237,6 @@ namespace {
 			std::vector<pq_types::value_type> w(n);
 
 			for ( auto l = 0; l < n; std::cin >> w[l++] ) ;
-
-			hpd_remapper *remapper = new hpd_remapper();
-			assert( remapper );
-			auto ret = remapper->convert(s,w);
-			s= std::get<0>(ret);
-			w= std::get<1>(ret);
 
 			std::default_random_engine generator;
 			std::uniform_int_distribution<int> distribution(0,n-1);
