@@ -12,6 +12,8 @@
 #include <cstring>
 #include <sstream>
 #include <cstdio>
+#include <cstdlib>
+#include "bender_farach_colton.hpp"
 using namespace pq_types;
 typedef sdsl::int_vector<> int_vector;
 
@@ -29,7 +31,7 @@ private:
 	hmz *t[r];
 	node_type *ptr[2];
 
-	size_type depth( node_type x ) const  { return level[x];  }
+	inline size_type depth( node_type x ) const  { return level[x];  }
 	node_type parent( node_type x ) const { return T->parent(x); }
 
 	/* 
@@ -93,7 +95,7 @@ private:
 		return B->rank(px,i)+1-B->rank(1,i);
 	}
 
-	node_type get_ptr( node_type x, value_type i ) const {
+	inline node_type get_ptr( node_type x, value_type i ) const {
 		return ptr[i][x];
 	}
 
@@ -127,8 +129,8 @@ private:
 			size_type dw;
 			node_type ix,iy,iz;
 			if ( t[i]->size() >= 2 ) {
-				ix= get_ptr(x,i), iy= get_ptr(y,i), iz= get_ptr(z,i);
-				dw= t[i]->depth(ix)+t[i]->depth(iy)+(t[i]->a<=wc && wc<=t[i]->b?1:0)-2*t[i]->depth(iz);
+				ix= ptr[i][x], iy= ptr[i][y], iz= ptr[i][z];
+				dw= t[i]->level[ix]+t[i]->level[iy]+(t[i]->a<=wc && wc<=t[i]->b?1:0)-2*t[i]->level[iz];
 			}
 			else dw= (t[i]->a<=wc && wc<=t[i]->b?1:0);
 			if ( accum+dw > k )
@@ -215,6 +217,8 @@ private:
 		return b+1;
 	}
 
+	lca_processor *lca_proc= NULL;
+
 public:
 
 	hmz( const std::string &s, const std::vector<value_type> &wgt ) {
@@ -226,6 +230,7 @@ public:
 				sigma= wgt[i];
 		this->a= 0, this->b= sigma;
 		init(s,wgt);
+		lca_proc= new lca_processor(T);
 	}
 
 	size_type size() const { return n; }
@@ -235,7 +240,8 @@ public:
 	}
 
 	value_type query( const node_type x, const node_type y ) const {
-		node_type z= T->lca(x+1,y+1);
+		//node_type z= T->lca(x+1,y+1);
+		node_type z= (*lca_proc)(x+1,y+1);
 		size_type len= depth(x+1)+depth(y+1)+1-2*depth(z);
 		return _query(x+1,y+1,z,original_weight(z),len>>1);
 	}
@@ -253,11 +259,22 @@ public:
 				ans += t[i]->bits_per_node()*t[i]->size();
 		}
 		ans+= 8*size()*sizeof *level;
-		ans += 2*8*sizeof a;
+		ans += 8*sizeof a + 8*sizeof b;
 		return ans/size();
 	}
 
 	node_type lca( node_type x, node_type y ) const {
 		return T->lca(x+1,y+1)-1;
 	}
+
+	/*
+	~hmz() {
+		if ( is_homogeneous() ) return ;
+		for ( auto i= 0; i < r; ++i )
+			if ( t[i] )
+				delete t[i];
+		delete lca_proc;
+		delete T;
+	}
+	*/
 };
