@@ -65,6 +65,9 @@ public:
 		assert( i < BS && j < BS );
 		return M[u][i][j];
 	}
+	double size_in_bytes() const {
+		return (1<<(BS-1))*BS*BS*sizeof ***M;
+	}
 };
 
 class sparse_table_rmq {
@@ -102,6 +105,9 @@ public:
 		for ( k= 0; i+(1<<k) <= j; ++k ) ;
 		assert( i+(1<<(k-1)) <= j );
 		return A[l=M[i][k-1]] < A[r=M[j-(1<<(k-1))+1][k-1]] ? l:r;
+	}
+	double size_in_bytes() const {
+		return n*K*sizeof **M;
 	}
 };
 
@@ -174,6 +180,9 @@ public:
 		if ( smbl ) delete smbl;
 		delete block_type;
 	}
+	double size_in_bytes() const {
+		return (n/BS+3)*(sizeof *A+sizeof *B+sizeof *block_type)+st->size_in_bytes()+smbl->size_in_bytes();
+	}
 };
 
 class lca_processor {
@@ -207,6 +216,9 @@ public:
 	}
 	node_type operator ()( node_type x, node_type y ) const {
 		return E[(*rmq)(R[x],R[y])];
+	}
+	double size_in_bytes() const {
+		return 2*n*(sizeof *L+sizeof *R+sizeof *E)+rmq->size_in_bytes();
 	}
 };
 

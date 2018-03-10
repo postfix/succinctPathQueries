@@ -1,4 +1,7 @@
 /*
+ * this tree uses succinctly represented tree during the
+ * construction of the explicit 0/1 extraction;
+ * O(1) LCA is constructed (Bender & Farach-Colton-type)
  */
 #include <algorithm>
 #include <cassert>
@@ -21,6 +24,7 @@ template<class t_succinct_tree= bp_tree,uint8_t r=2>
 class hmz: public path_query_processor {
 private:
 	const node_type dummy_root= 0, LEFT= 0, RIGHT= 0;
+	node_type *explict_parent;
 	value_type a,b;
 	rs_bitvector01 *B;
 	bool is_homogeneous() const { return a==b; }
@@ -32,7 +36,7 @@ private:
 	node_type *ptr[2];
 
 	inline size_type depth( node_type x ) const  { return level[x];  }
-	node_type parent( node_type x ) const { return T->parent(x); }
+	node_type parent( node_type x ) const { assert( T ); return T->parent(x); }
 
 	/* 
 	 * find the lowest ancestor of "x" with weight from [a_i..b_i]
@@ -66,7 +70,7 @@ private:
 		//assert( T->is_ancestor(v,z) );
 		//assert( z != dummy_root && (*B)[z] == i );
 		node_type image_of_z= B->rank(z,i)+1-B->rank(1,i), pz;
-		pz= image_of_z==dummy_root?dummy_root:t[i]->parent(image_of_z);
+		pz= image_of_z==dummy_root?dummy_root:t[i]->explict_parent[image_of_z];
 		if ( pz == dummy_root )
 			return pz;
 		if ( i > 0 )
@@ -142,7 +146,7 @@ private:
 		return n;
 	}
 
-	void init( const std::string &s, const std::vector<value_type> &wgt ) {
+	void init( const std::string &s, const std::vector<value_type> &wgt, bool delete_T= true ) {
 		assert( size() == wgt.size()+1 );
 		B= NULL, T= new t_succinct_tree("("+s+")"); //holds the overall structure
 		for ( auto i= 0; i < r; t[i++]= NULL ) ;
@@ -155,7 +159,15 @@ private:
 		for ( auto l= 0; l < r; ++l )
 			ptr[l]= new node_type[size()];
 
-		if ( is_homogeneous() ) return ;
+		explict_parent= new node_type[size()];
+		for ( node_type x= 1; x < size(); ++x )
+			explict_parent[x]= T->parent(x);
+
+		if ( is_homogeneous() ) {
+			if ( delete_T )
+				delete T, T= NULL;
+			return ;
+		}
 
 		bit_vector *bv = new bit_vector(size());
 		for ( auto l= 0; l < size()-1; ++l ) {
@@ -196,6 +208,9 @@ private:
 		for ( auto v= 0; v < size(); ++v ) 
 			for ( auto l= 0; l < r; ++l )
 				ptr[l][v]= image_of(v,l);
+		if ( delete_T )
+			delete T, T= NULL;
+		delete B;
 	}
 
 	hmz( const std::string &s, const std::vector<value_type> &wgt, value_type a, value_type b ) {
@@ -219,6 +234,8 @@ private:
 
 	lca_processor *lca_proc= NULL;
 
+	value_type *oweight= NULL;
+
 public:
 
 	hmz( const std::string &s, const std::vector<value_type> &wgt ) {
@@ -229,8 +246,11 @@ public:
 			if ( wgt[i] > sigma )
 				sigma= wgt[i];
 		this->a= 0, this->b= sigma;
-		init(s,wgt);
+		init(s,wgt,false);
 		lca_proc= new lca_processor(T);
+		oweight= new value_type[size()];
+		for ( auto i= 0; i < wgt.size(); ++i )
+			oweight[i+1]= wgt[i];
 	}
 
 	size_type size() const { return n; }
@@ -243,7 +263,8 @@ public:
 		//node_type z= T->lca(x+1,y+1);
 		node_type z= (*lca_proc)(x+1,y+1);
 		size_type len= depth(x+1)+depth(y+1)+1-2*depth(z);
-		return _query(x+1,y+1,z,original_weight(z),len>>1);
+		//return _query(x+1,y+1,z,original_weight(z),len>>1);
+		return _query(x+1,y+1,z,oweight[z],len>>1);
 	}
 
 	value_type weight_of( const node_type x ) const {
@@ -252,14 +273,18 @@ public:
 
 	double bits_per_node() const {
 		if ( !T ) return 0.00;
-		double ans= 8*( T->size_in_bytes() + (is_homogeneous()?0:B->size_in_bytes()) );
+		//double ans= 8*( T->size_in_bytes() + (is_homogeneous()?0:B->size_in_bytes()) );
+		double ans= 0;
 		for ( auto i= 0; i < r; ++i ) {
 			ans+= 8*size()*sizeof *ptr[i];
 			if ( t[i] )
-				ans += t[i]->bits_per_node()*t[i]->size();
+				ans+= t[i]->bits_per_node()*t[i]->size();
 		}
 		ans+= 8*size()*sizeof *level;
-		ans += 8*sizeof a + 8*sizeof b;
+		ans+= 8*sizeof a + 8*sizeof b;
+		ans+= 8*size()*sizeof *explict_parent;
+		if ( lca_proc )
+			ans+= 8*T->size_in_bytes(), ans+= 8*lca_proc->size_in_bytes(), ans+= 8*size()*sizeof *oweight;
 		return ans/size();
 	}
 
@@ -274,7 +299,7 @@ public:
 			if ( t[i] )
 				delete t[i];
 		delete lca_proc;
-		delete T;
+		delete explict_parent;
 	}
 	*/
 };
