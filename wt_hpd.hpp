@@ -145,7 +145,7 @@ public:
 	}
 
 	double bits_per_node() const {
-		return 8*(original->size_in_bytes()+condensed->size_in_bytes()+B->size_in_bytes()+sdsl::size_in_bytes(*wavelet_tree))/(size()+0.00);
+		return 8*(sizeof m + original->size_in_bytes()+condensed->size_in_bytes()+B->size_in_bytes()+sdsl::size_in_bytes(*wavelet_tree))/(size()+0.00);
 	}	
 };
 
