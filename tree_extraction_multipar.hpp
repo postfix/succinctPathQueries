@@ -13,6 +13,7 @@
 #include <cstring>
 #include <sstream>
 #include <cstdio>
+#include "sdsl/io.hpp"
 using namespace pq_types;
 typedef sdsl::int_vector<> int_vector;
 typedef sdsl::bp_support_gg<> bp_support_gg;
@@ -309,15 +310,18 @@ public:
 
 	double bits_per_node() const {
 		if ( !structure ) return 0.00;
-		double ans= 8 * ( structure->size_in_bytes() + (is_homogeneous()?0:B->size_in_bytes()) );
+		double ans= 8*(sdsl::size_in_bytes(*structure)+(is_homogeneous()?0:S->size_in_bytes())+2*r*sizeof(int)+2*sizeof(a));
 		for ( auto i= 0; i < r; ++i )
-			if ( t[i] )
-				ans += t[i]->bits_per_node()*t[i]->size();
+			if ( t[i] ) {
+				ans+= t[i]->bits_per_node()*t[i]->size();
+				//ans+= 8*sdsl::size_in_bytes(*B[i]);
+			}
 		return ans/size();
 	}
 
 	node_type lca( node_type x, node_type y ) const {
 		return _lca(x+1,y+1)-1;
 	}
+
 };
 
