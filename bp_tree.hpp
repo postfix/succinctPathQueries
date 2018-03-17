@@ -68,7 +68,7 @@ public:
 		assert( m_bv );
 		for ( auto i = 0; i < k; ++i )
 			if ( s[i] == '(' )
-				(*m_bv)[i] = 1;
+				(*m_bv)[i]= 1;
 #if SADA
 		bp_sada = bp_support_sada(m_bv);
 #else
@@ -77,13 +77,14 @@ public:
 		_sz+= sdsl::size_in_bytes(*m_bv);
 	}
 	
-	bp_tree( const bit_vector *bp ) {
+	bp_tree( bit_vector *bp ) {
 		_sz= 0;
 #if SADA
 		bp_sada = bp_support_sada(bp);
 #else
 		bp_sada = bp_support_gg(bp);
 #endif
+		m_bv= bp;
 		//_sz+= sdsl::size_in_bytes(*bp);
 		//bp_sada.set_vector(bp);
 	}
@@ -93,8 +94,10 @@ public:
 		return bp_sada.size()>>1;
 	}
 
+	// size_in_bytes(bp_sada) does not take into consideration the backbone bitvector
+	// now I fixed it
 	double size_in_bytes() const {
-		return sdsl::size_in_bytes(bp_sada)+_sz;
+		return sdsl::size_in_bytes(bp_sada)+sdsl::size_in_bytes(*m_bv);
 	}
 
 	// navigation

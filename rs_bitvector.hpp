@@ -20,8 +20,8 @@ public:
 	//rs_bitvector() {};
 	//rs_bitvector( const sdsl::bit_vector &bv ) : sd_b(bv), sdb_sel(&sd_b), sdb_rank(&sd_b) {}
 	explicit rs_bitvector( const sdsl::bit_vector &bv ) {
-		/*_sz+= sdsl::size_in_bytes(bv);
-		std::cout << _sz << std::endl;*/
+		_sz+= sdsl::size_in_bytes(bv);
+		/*std::cout << _sz << std::endl;*/
 		rrr_b = sdsl::rrr_vector<>(bv); 
 		rrr_sel = sdsl::rrr_vector<>::select_1_type(&rrr_b);
 		rrr_rank = sdsl::rrr_vector<>::rank_1_type(&rrr_b);
@@ -49,6 +49,8 @@ public:
 		return rrr_b[i];
 	}
 
+	~rs_bitvector() {
+	}
 };
 
 #endif
