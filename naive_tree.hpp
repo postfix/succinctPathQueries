@@ -170,9 +170,9 @@ public:
 		return randomized_select(path,0,path.size()-1,path.size()/2);
 	}
 
-	//FIXME
 	double size_in_bytes() const {
-		return 0;
+		double ans= size()*(sizeof 0[p] + sizeof 0[d]) + 2*(size()-1)*sizeof(node_type);
+		return ans;
 	}
 };
 

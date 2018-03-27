@@ -289,7 +289,8 @@ public:
 	}
 
 	node_type lca( node_type x, node_type y ) const {
-		return T->lca(x+1,y+1)-1;
+		//return T->lca(x+1,y+1)-1;
+		return (*lca_proc)(x+1,y+1)-1;
 	}
 
 	/*

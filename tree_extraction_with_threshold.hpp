@@ -19,10 +19,12 @@ using namespace pq_types;
 typedef sdsl::int_vector<> int_vector;
 typedef sdsl::bp_support_gg<> bp_support_gg;
 
+extern uint32_t K;
+
 template<class t_bp_support= bp_support_gg,uint8_t r=2>
 class tree_extraction_with_threshold: public path_query_processor {
 private:
-	static const uint32_t K= 0x400;
+	//static const uint32_t K= 0x400;
 	bool is_final_tree;
 	bit_vector *base_structure= nullptr;
 	value_type a,b;
@@ -306,7 +308,7 @@ public:
 		double ans= 8*( sdsl::size_in_bytes(*structure) + (is_final_tree?0:B->size_in_bytes()) );
 		ans+= 8*(sizeof(a)+sizeof(b)+sizeof base_structure+sizeof structure+sizeof B);
 		ans+= 8*(sizeof weights);
-		ans+= 8*sizeof is_final_tree;
+		ans+= 8*(sizeof is_final_tree);
 		if ( is_final_tree ) 
 			ans+= 8*size()*sizeof *weights;
 		if ( base_structure ) ans+= 8*sdsl::size_in_bytes(*base_structure);

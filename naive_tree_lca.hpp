@@ -179,7 +179,8 @@ public:
 
 	//FIXME
 	double size_in_bytes() const {
-		return 0;
+		double ans= size()*(sizeof 0[p]) + 2*(size()-1)*sizeof(node_type) + prc->size_in_bytes();
+		return ans;
 	}
 };
 
